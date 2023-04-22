@@ -151,7 +151,7 @@ def close_fic(flog: TextIO):
     flog.close()
 
 
-def sync_git(dossier: str, nom_fic_depot: str, nom_fic_log: str) -> int:
+def sync_git_dossier(dossier: str, nom_fic_depot: str = "", nom_fic_log: str = "") -> int:
     """
     Permet de synchroniser des dépôts git locaux avec leur remote
     :param dossier: Le dossier parent du (des) dépôt(s) à synchroniser
@@ -159,25 +159,37 @@ def sync_git(dossier: str, nom_fic_depot: str, nom_fic_log: str) -> int:
     :param nom_fic_log: Le chemin du fichier où écrire les logs
     :return: 0 si exécution s'est bien passée
     """
-    fic_log, fic_depot = ouvrir_fic(nom_fic_depot, nom_fic_log)
-    depot = fic_depot.readlines()
-    close_fic(fic_depot)
-    ecrire_entete(fic_log, dossier)
+    if len(nom_fic_depot) > 0 and len(nom_fic_log) > 0:
+        fic_log, fic_depot = ouvrir_fic(nom_fic_depot, nom_fic_log)
+        depot = fic_depot.readlines()
+        close_fic(fic_depot)
+        ecrire_entete(fic_log, dossier)
     os.chdir(dossier)
     progress_bar = progressbar.ProgressBar(redirect_stdout=True, max_value=len(depot))
     progress_bar.update(0)
     for fold in depot:
-        fold = fold.strip()
-        os.chdir(fold)
-        fic_log.write(fold + " :\n")
-        branch = trouver_branch()
-        upstream = trouver_upstream(branch)
-        remote = upstream.split("/")[0]
-        subprocess.run(["git", "fetch", remote])
-        count = trouver_count(upstream)
-        sync_local_remote(count, fic_log, branch, remote)
-        print(fold)
-        progress_bar.update(progress_bar.value + 1)
-        os.chdir("..")
+        sync_git_doss(fold, progress_bar, fic_log)
     close_fic(fic_log)
     return 0
+
+
+def sync_git_doss(fold: str, progress_bar: progressbar.bar.ProgressBar, fic_log: TextIO = None):
+    """
+    Permet de synchroniser un dossier
+    :param fic_log:
+    :param fold:
+    :param progress_bar:
+    :return:
+    """
+    fold = fold.strip()
+    os.chdir(fold)
+    fic_log.write(fold + " :\n")
+    branch = trouver_branch()
+    upstream = trouver_upstream(branch)
+    remote = upstream.split("/")[0]
+    subprocess.run(["git", "fetch", remote])
+    count = trouver_count(upstream)
+    sync_local_remote(count, fic_log, branch, remote)
+    print(fold)
+    progress_bar.update(progress_bar.value + 1)
+    os.chdir("..")
