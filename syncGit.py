@@ -74,7 +74,7 @@ def push_pull(action: str, branch: str = None, remote: str = None) -> subprocess
     return res
 
 
-def sync_local_remote(count: str, fic_log: TextIO, branch: str | None = None,
+def sync_local_remote(count: str, fic_log: TextIO | None, branch: str | None = None,
                       remote: str | None = None) -> None:
     """
     Permet de determiner l'action à exécuter pour synchroniser le depot local, puis execute cette action
@@ -91,8 +91,9 @@ def sync_local_remote(count: str, fic_log: TextIO, branch: str | None = None,
         elif count[indice] != '0' and count[0] == '0':
             res = push_pull("push", branch, remote)
         if res:
-            fic_log.write(res.stdout)
-    else:
+            if fic_log is not None:
+                fic_log.write(res.stdout)
+    elif fic_log is not None :
         fic_log.write("Dépôt à jour \n")
         fic_log.write("\n")
 
@@ -151,7 +152,7 @@ def close_fic(flog: TextIO):
     flog.close()
 
 
-def sync_git_dossier(dossier: str, nom_fic_depot: str = "", nom_fic_log: str = "") -> int:
+def sync_git_liste_dossier(dossier: str, nom_fic_depot: str, nom_fic_log: str = "") -> int:
     """
     Permet de synchroniser des dépôts git locaux avec leur remote
     :param dossier: Le dossier parent du (des) dépôt(s) à synchroniser
@@ -164,26 +165,34 @@ def sync_git_dossier(dossier: str, nom_fic_depot: str = "", nom_fic_log: str = "
         depot = fic_depot.readlines()
         close_fic(fic_depot)
         ecrire_entete(fic_log, dossier)
+    elif len(nom_fic_log) < 1:
+        fic_depot = open(nom_fic_depot, "r")
+        depot = fic_depot.readlines()
+        close_fic(fic_depot)
+        fic_log = None
+    else:
+        raise ValueError("Un nom de fichier avec les depot à synchroniser doit être fournit")
     os.chdir(dossier)
     progress_bar = progressbar.ProgressBar(redirect_stdout=True, max_value=len(depot))
     progress_bar.update(0)
     for fold in depot:
-        sync_git_doss(fold, progress_bar, fic_log)
+        sync_git_doss(fold, fic_log)
+        progress_bar.update(progress_bar.value + 1)
     close_fic(fic_log)
     return 0
 
 
-def sync_git_doss(fold: str, progress_bar: progressbar.bar.ProgressBar, fic_log: TextIO = None):
+def sync_git_doss(fold: str, fic_log: TextIO | None):
     """
     Permet de synchroniser un dossier
-    :param fic_log:
-    :param fold:
-    :param progress_bar:
+    :param fic_log: Le fichier de Log (par defaut None)
+    :param fold: Le chemin vers le dossier (absolue ou relatif)
     :return:
     """
     fold = fold.strip()
     os.chdir(fold)
-    fic_log.write(fold + " :\n")
+    if fic_log is not None :
+        fic_log.write(fold + " :\n")
     branch = trouver_branch()
     upstream = trouver_upstream(branch)
     remote = upstream.split("/")[0]
@@ -191,5 +200,4 @@ def sync_git_doss(fold: str, progress_bar: progressbar.bar.ProgressBar, fic_log:
     count = trouver_count(upstream)
     sync_local_remote(count, fic_log, branch, remote)
     print(fold)
-    progress_bar.update(progress_bar.value + 1)
     os.chdir("..")
