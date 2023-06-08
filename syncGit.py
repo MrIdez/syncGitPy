@@ -21,6 +21,12 @@ from typing import TextIO
 
 import progressbar
 
+# Constante
+
+PUSH = "push"
+
+PULL = "pull"
+
 
 def run(cmd: str) -> subprocess.CompletedProcess[str]:
     """
@@ -59,7 +65,7 @@ def ouvrir_fic(nom_fic_depot: str, nom_fic_log: str) -> tuple[TextIO, TextIO]:
 def push_pull(action: str, branch: str = None, remote: str = None) -> subprocess.CompletedProcess[str]:
     """
     Permet de pousser le depot local vers le depot distant
-    :param action:
+    :param action: L'action à réaliser, push ou pull
     :param branch: la branche à pousser
     :param remote: le nom du depot distant
     :return: le resultat de la commande
@@ -87,15 +93,14 @@ def sync_local_remote(count: str, fic_log: TextIO | None, branch: str | None = N
     indice = len(count) - 1
     if count != "0 0":
         if count[0] != '0' and count[indice] == '0':
-            res = push_pull("pull", branch, remote)
+            res = push_pull(PULL, branch, remote)
         elif count[indice] != '0' and count[0] == '0':
-            res = push_pull("push", branch, remote)
-        if res:
-            if fic_log is not None:
-                fic_log.write(res.stdout)
-    elif fic_log is not None :
-        fic_log.write("Dépôt à jour \n")
-        fic_log.write("\n")
+            res = push_pull(PUSH, branch, remote)
+    if fic_log is not None:
+        if res is not None:
+            fic_log.write(res.stdout)
+        else:
+            fic_log.write("Dépôt à jour \n\n")
 
 
 def maj_info(info: dict[str, int], sync_push: bool = False, sync_pull: bool = False):
@@ -125,7 +130,7 @@ def trouver_upstream(branch: str) -> str:
     :param branch: la branche
     :return: l'upstream
     """
-    cmd_upstream = ("git rev-parse --abbrev-ref " + branch + "@{upstream}").split()
+
     upstream = subprocess.run(cmd_upstream, stdout=subprocess.PIPE, text=True)
     upstream = upstream.stdout.strip()
     return upstream
@@ -162,19 +167,16 @@ def sync_git_liste_dossier(dossier: str, nom_fic_depot: str, nom_fic_log: str = 
     """
     if len(nom_fic_depot) > 0 and len(nom_fic_log) > 0:
         fic_log, fic_depot = ouvrir_fic(nom_fic_depot, nom_fic_log)
-        depot = fic_depot.readlines()
-        close_fic(fic_depot)
+        depot = lire_fic_depot(fic_depot)
         ecrire_entete(fic_log, dossier)
     elif len(nom_fic_log) < 1:
         fic_depot = open(nom_fic_depot, "r")
-        depot = fic_depot.readlines()
-        close_fic(fic_depot)
+        depot = lire_fic_depot(fic_depot)
         fic_log = None
     else:
         raise ValueError("Un nom de fichier avec les depot à synchroniser doit être fournit")
     os.chdir(dossier)
-    progress_bar = progressbar.ProgressBar(redirect_stdout=True, max_value=len(depot))
-    progress_bar.update(0)
+    progress_bar = init_progress_bar(depot)
     for fold in depot:
         sync_git_doss(fold, fic_log)
         progress_bar.update(progress_bar.value + 1)
@@ -182,22 +184,50 @@ def sync_git_liste_dossier(dossier: str, nom_fic_depot: str, nom_fic_log: str = 
     return 0
 
 
+def init_progress_bar(depot):
+    progress_bar = progressbar.ProgressBar(redirect_stdout=True, max_value=len(depot))
+    progress_bar.update(0)
+    return progress_bar
+
+
+def lire_fic_depot(fic_depot):
+    depot = fic_depot.readlines()
+    close_fic(fic_depot)
+    return depot
+
+
 def sync_git_doss(fold: str, fic_log: TextIO | None):
     """
     Permet de synchroniser un dossier
-    :param fic_log: Le fichier de Log (par defaut None)
+    :param fic_log: Le fichier de Log (par défaut None)
     :param fold: Le chemin vers le dossier (absolue ou relatif)
-    :return:
     """
     fold = fold.strip()
     os.chdir(fold)
-    if fic_log is not None :
+    if fic_log is not None:
         fic_log.write(fold + " :\n")
-    branch = trouver_branch()
-    upstream = trouver_upstream(branch)
-    remote = upstream.split("/")[0]
-    subprocess.run(["git", "fetch", remote])
-    count = trouver_count(upstream)
+    branch, count, remote = trouver_branch_count_remote()
     sync_local_remote(count, fic_log, branch, remote)
     print(fold)
     os.chdir("..")
+
+
+def trouver_branch_count_remote():
+    """
+    Permet de trouver le branch courante, la remote du git et l'écart entre branche local et la remote
+    :return: branch: la branche, count: l'écart entre la branch locale et distante, remote: la remote du Git
+    """
+    branch = trouver_branch()
+    upstream = trouver_upstream(branch)
+    remote = upstream.split("/")[0]
+    git_fetch(remote)
+    count = trouver_count(upstream)
+    return branch, count, remote
+
+
+def git_fetch(remote):
+    """
+    Permet de fetch la remote passée en paramètre
+    :param remote: la remote à fetch
+    """
+    subprocess.run(["git", "fetch", remote])
