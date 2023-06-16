@@ -15,6 +15,7 @@
 #  program. If not, see <https://www.gnu.org/licenses/>.
 # ******************************************************************************
 import os
+import re
 import subprocess
 from datetime import datetime
 from typing import TextIO
@@ -130,7 +131,7 @@ def trouver_upstream(branch: str) -> str:
     :param branch: la branche
     :return: l'upstream
     """
-
+    cmd_upstream = ("git rev-parse --abbrev-ref " + branch + "@{upstream}").split()
     upstream = subprocess.run(cmd_upstream, stdout=subprocess.PIPE, text=True)
     upstream = upstream.stdout.strip()
     return upstream
@@ -157,7 +158,7 @@ def close_fic(flog: TextIO):
     flog.close()
 
 
-def sync_git_liste_dossier(dossier: str, nom_fic_depot: str, nom_fic_log: str = "") -> int:
+def sync_git_liste_dossier(dossier: str, nom_fic_depot: str = "", nom_fic_log: str = "") -> int:
     """
     Permet de synchroniser des dépôts git locaux avec leur remote
     :param dossier: Le dossier parent du (des) dépôt(s) à synchroniser
@@ -165,16 +166,7 @@ def sync_git_liste_dossier(dossier: str, nom_fic_depot: str, nom_fic_log: str = 
     :param nom_fic_log: Le chemin du fichier où écrire les logs
     :return: 0 si exécution s'est bien passée
     """
-    if len(nom_fic_depot) > 0 and len(nom_fic_log) > 0:
-        fic_log, fic_depot = ouvrir_fic(nom_fic_depot, nom_fic_log)
-        depot = lire_fic_depot(fic_depot)
-        ecrire_entete(fic_log, dossier)
-    elif len(nom_fic_log) < 1:
-        fic_depot = open(nom_fic_depot, "r")
-        depot = lire_fic_depot(fic_depot)
-        fic_log = None
-    else:
-        raise ValueError("Un nom de fichier avec les depot à synchroniser doit être fournit")
+    depot, fic_log = trouver_depot_fic_log(dossier, nom_fic_depot, nom_fic_log)
     os.chdir(dossier)
     progress_bar = init_progress_bar(depot)
     for fold in depot:
@@ -182,6 +174,20 @@ def sync_git_liste_dossier(dossier: str, nom_fic_depot: str, nom_fic_log: str = 
         progress_bar.update(progress_bar.value + 1)
     close_fic(fic_log)
     return 0
+
+
+def trouver_depot_fic_log(dossier, nom_fic_depot, nom_fic_log):
+    fic_log = None
+    if len(nom_fic_depot) > 0 and len(nom_fic_log) > 0:
+        fic_log, fic_depot = ouvrir_fic(nom_fic_depot, nom_fic_log)
+        depot = lire_fic_depot(fic_depot)
+        ecrire_entete(fic_log, dossier)
+    elif len(nom_fic_log) < 1:
+        fic_depot = open(nom_fic_depot, "r")
+        depot = lire_fic_depot(fic_depot)
+    else:
+        depot = trouver_depot(dossier)
+    return depot, fic_log
 
 
 def init_progress_bar(depot):
@@ -223,6 +229,18 @@ def trouver_branch_count_remote():
     git_fetch(remote)
     count = trouver_count(upstream)
     return branch, count, remote
+
+
+def trouver_depot(dossier):
+    os.chdir(dossier)
+    list_dir = os.listdir()
+    list_dossier = []
+    for doss in list_dir:
+        os.chdir(doss)
+        est_un_depot = [f for f in os.listdir('.') if re.match(r'.*\.git$', f)]
+        if est_un_depot:
+            list_dossier.append(doss)
+    return list_dossier
 
 
 def git_fetch(remote):
