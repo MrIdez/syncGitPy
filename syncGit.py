@@ -14,9 +14,12 @@
 #  You should have received a copy of the GNU General Public License along with this
 #  program. If not, see <https://www.gnu.org/licenses/>.
 # ******************************************************************************
+import argparse
 import os
 import re
 import subprocess
+import threading
+import time
 from datetime import datetime
 from typing import TextIO
 
@@ -168,21 +171,37 @@ def sync_git_liste_dossier(dossier: str, nom_fic_depot: str = "", nom_fic_log: s
     """
     depot, fic_log = trouver_depot_fic_log(dossier, nom_fic_depot, nom_fic_log)
     os.chdir(dossier)
-    progress_bar = init_progress_bar(depot)
+    # progress_bar = init_progress_bar(depot)
     for fold in depot:
-        sync_git_doss(fold, fic_log)
-        progress_bar.update(progress_bar.value + 1)
-    close_fic(fic_log)
+        sync_git_doss_thread = threading.Thread(target=sync_git_doss, args=(fold, fic_log))
+        sync_git_doss_thread.start()
+        eli_count = 0
+        while sync_git_doss_thread.is_alive():
+            print(fold, "Synchronisation", '.' * (eli_count + 1), ' ' * (2 - eli_count), end='\r')
+            eli_count = (eli_count + 1) % 3
+            time.sleep(0.1)
+        sync_git_doss_thread.join()
+        print(fold,"Fait !"," "*15)
+        # progress_bar.update(progress_bar.value + 1)
+    if fic_log is not None:
+        close_fic(fic_log)
     return 0
 
 
 def trouver_depot_fic_log(dossier, nom_fic_depot, nom_fic_log):
+    """
+    Permet de renvoyer fic_log et la liste des dossiers en fonction des données fournit par l'utilisateur
+    :param dossier: le nom du dossier à synchroniser
+    :param nom_fic_depot: le nom du fichier où sont listé les dépôts
+    :param nom_fic_log: le nom du fichier de log
+    :return: la liste des depot et le fichier de log (None si pas de fichier)
+    """
     fic_log = None
     if len(nom_fic_depot) > 0 and len(nom_fic_log) > 0:
         fic_log, fic_depot = ouvrir_fic(nom_fic_depot, nom_fic_log)
         depot = lire_fic_depot(fic_depot)
         ecrire_entete(fic_log, dossier)
-    elif len(nom_fic_log) < 1:
+    elif len(nom_fic_depot) != 0:
         fic_depot = open(nom_fic_depot, "r")
         depot = lire_fic_depot(fic_depot)
     else:
@@ -214,7 +233,6 @@ def sync_git_doss(fold: str, fic_log: TextIO | None):
         fic_log.write(fold + " :\n")
     branch, count, remote = trouver_branch_count_remote()
     sync_local_remote(count, fic_log, branch, remote)
-    print(fold)
     os.chdir("..")
 
 
@@ -235,11 +253,13 @@ def trouver_depot(dossier):
     os.chdir(dossier)
     list_dir = os.listdir()
     list_dossier = []
+    list_dir = list(filter(os.path.isdir, list_dir))
     for doss in list_dir:
         os.chdir(doss)
         est_un_depot = [f for f in os.listdir('.') if re.match(r'.*\.git$', f)]
         if est_un_depot:
             list_dossier.append(doss)
+        os.chdir("..")
     return list_dossier
 
 
@@ -249,3 +269,4 @@ def git_fetch(remote):
     :param remote: la remote à fetch
     """
     subprocess.run(["git", "fetch", remote])
+
