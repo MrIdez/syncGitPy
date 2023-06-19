@@ -84,12 +84,11 @@ def push_pull(action: str, dossier: str, branch: str = None, remote: str = None)
     return res
 
 
-def sync_local_remote(count: str, dossier: str, fic_log: TextIO | None, branch: str | None = None,
+def sync_local_remote(count: str, dossier: str, branch: str | None = None,
                       remote: str | None = None) -> str:
     """
     Permet de determiner l'action à exécuter pour synchroniser le depot local, puis execute cette action
     :param dossier: le dossier où sync
-    :param fic_log: Le fichier de log.
     :param remote: Le nom de la remote du Git
     :param count: Le resultat de la fonction count
     :param branch: La branche local courant du Git
@@ -233,7 +232,7 @@ def sync_git_doss(fold: str, fic_log: TextIO | None):
     fold = fold.strip()
     os.chdir(fold)
     branch, count, remote = trouver_branch_count_remote(fold)
-    log = sync_local_remote(count, fold, fic_log, branch, remote)
+    log = sync_local_remote(count, fold, branch, remote)
     if fic_log is not None:
         fic_log.write(fold + " :\n")
         fic_log.write(log + "\n")
@@ -262,10 +261,10 @@ def trouver_depot(dossier):
     list_dir = list(filter(os.path.isdir, list_dir))
     for doss in list_dir:
         os.chdir(doss)
-        est_un_depot = [f for f in os.listdir('.') if re.match(r'.*\.git$', f)]
+        est_un_depot = [f for f in os.listdir('..') if re.match(r'.*\.git$', f)]
         if est_un_depot:
             list_dossier.append(doss)
-        os.chdir("..")
+        os.chdir("../..")
     return list_dossier
 
 

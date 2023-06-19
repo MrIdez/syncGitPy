@@ -17,11 +17,22 @@
 
 # Bienvenue :wave: 
 
+#### Version : 0.9.0
+
 Ce dépôt contient mon projet SyncGitPy, un script python pour synchroniser les dépôts locaux avec leur remote.
 
 ## Fonctionnalités : 
+- Multithreading : une synchronisation de dépôt = 1 thread
+- Flexibilité : beaucoup de choix dans les options
+- Rapidité : grâce au multithreading
+- Possibilité de synchroniser 1 ou plusieurs dépôts
+- Log : pour savoir quels dépôts ont été synchronisés
+- 100% Gratuit
 
-## Limites :
+## Mode d'emploi
+
+### installation :
+
 
 ## Licence 
 
