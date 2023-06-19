@@ -8,8 +8,7 @@ if __name__ == '__main__':
                                      epilog="Copyright (c) 2023 - Guillaume Baron")
 
     parser.add_argument("dossier", metavar="DOSS")
-    parser.add_argument("--fic_dossier", metavar="FIC_DOSS",required=False)
-    parser.add_argument("--fic_log",required=False)
+    parser.add_argument("--fic_dossier", metavar="FIC_DOSS", required=False)
+    parser.add_argument("--fic_log", required=False)
     res = parser.parse_args()
-    sync_git_liste_dossier(res.dossier)
-
+    sync_git_liste_dossier(res.dossier, nom_fic_log=res.fic_log)
