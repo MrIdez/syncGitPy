@@ -38,7 +38,7 @@ def run(cmd: str | list[str], dossier: str) -> subprocess.CompletedProcess[str]:
     :param cmd: La commande à exécuter
     :return: Le resultat de subprocess.run(args=cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
     """
-    if cmd is str:
+    if isinstance(cmd,str):
         cmd = cmd.split()
     result = subprocess.run(args=cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, cwd=dossier)
     return result
