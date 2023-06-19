@@ -186,9 +186,8 @@ def sync_git_liste_dossier(dossier: str, nom_fic_depot: str = "", nom_fic_log: s
     for t in list_thread:
         t.start()
     en_cours = all(thread.is_alive() for thread in list_thread)
-
+    eli_count = 0
     while en_cours:
-        eli_count = 0
         print("Synchronisation", '.' * (eli_count + 1), ' ' * (2 - eli_count), end='\r')
         eli_count = (eli_count + 1) % 3
         time.sleep(0.1)
@@ -210,6 +209,7 @@ def trouver_depot_fic_log(dossier, nom_fic_depot, nom_fic_log):
     :return: la liste des depot et le fichier de log (None si pas de fichier)
     """
     fic_log = None
+    depot = None
     if len(nom_fic_depot) > 0 and len(nom_fic_log) > 0:
         fic_log, fic_depot = ouvrir_fic(nom_fic_depot, nom_fic_log)
         depot = lire_fic_depot(fic_depot)
