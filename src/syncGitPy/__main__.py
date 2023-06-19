@@ -17,7 +17,7 @@
 
 import argparse
 
-from src.syncGitPy.syncGit import sync_git_liste_dossier
+from syncGitPy.syncGit import sync_git_liste_dossier
 
 
 def main():
@@ -30,7 +30,3 @@ def main():
     parser.add_argument("--fic_log", required=False)
     res = parser.parse_args()
     sync_git_liste_dossier(res.dossier)
-
-
-if __name__ == "__main__" :
-    main()
