@@ -22,8 +22,6 @@ import time
 from datetime import datetime
 from typing import TextIO
 
-import progressbar
-
 # Constante
 
 PUSH = "push"
@@ -38,7 +36,7 @@ def run(cmd: str | list[str], dossier: str) -> subprocess.CompletedProcess[str]:
     :param cmd: La commande à exécuter
     :return: Le resultat de subprocess.run(args=cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
     """
-    if isinstance(cmd,str):
+    if isinstance(cmd, str):
         cmd = cmd.split()
     result = subprocess.run(args=cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, cwd=dossier)
     return result
@@ -87,7 +85,7 @@ def push_pull(action: str, dossier: str, branch: str = None, remote: str = None)
 
 
 def sync_local_remote(count: str, dossier: str, fic_log: TextIO | None, branch: str | None = None,
-                      remote: str | None = None) -> None:
+                      remote: str | None = None) -> str:
     """
     Permet de determiner l'action à exécuter pour synchroniser le depot local, puis execute cette action
     :param dossier: le dossier où sync
@@ -103,11 +101,10 @@ def sync_local_remote(count: str, dossier: str, fic_log: TextIO | None, branch: 
             res = push_pull(PULL, dossier, branch, remote)
         elif count[indice] != '0' and count[0] == '0':
             res = push_pull(PUSH, dossier, branch, remote)
-    if fic_log is not None:
-        if res is not None:
-            fic_log.write(res.stdout)
-        else:
-            fic_log.write("Dépôt à jour \n\n")
+    if res is not None:
+        return res.stdout
+    else:
+        return "Dépôt à jour "
 
 
 def maj_info(info: dict[str, int], sync_push: bool = False, sync_pull: bool = False):
@@ -177,12 +174,10 @@ def sync_git_liste_dossier(dossier: str, nom_fic_depot: str = "", nom_fic_log: s
     depot, fic_log = trouver_depot_fic_log(dossier, nom_fic_depot, nom_fic_log)
     os.chdir(dossier)
     list_thread: list[threading.Thread] = []
-    # progress_bar = init_progress_bar(depot)
     for fold in depot:
         fold = os.getcwd() + os.sep + fold
         sync_git_doss_thread = threading.Thread(target=sync_git_doss, args=(fold, fic_log))
         list_thread.append(sync_git_doss_thread)
-
     for t in list_thread:
         t.start()
     en_cours = all(thread.is_alive() for thread in list_thread)
@@ -194,7 +189,6 @@ def sync_git_liste_dossier(dossier: str, nom_fic_depot: str = "", nom_fic_log: s
         en_cours = all(thread.is_alive() for thread in list_thread)
     for t in list_thread:
         t.join()
-    # progress_bar.update(progress_bar.value + 1)
     if fic_log is not None:
         close_fic(fic_log)
     return 0
@@ -224,12 +218,6 @@ def trouver_depot_fic_log(dossier, nom_fic_depot, nom_fic_log):
     return depot, fic_log
 
 
-def init_progress_bar(depot):
-    progress_bar = progressbar.ProgressBar(redirect_stdout=True, max_value=len(depot))
-    progress_bar.update(0)
-    return progress_bar
-
-
 def lire_fic_depot(fic_depot):
     depot = fic_depot.readlines()
     close_fic(fic_depot)
@@ -244,10 +232,14 @@ def sync_git_doss(fold: str, fic_log: TextIO | None):
     """
     fold = fold.strip()
     os.chdir(fold)
+    branch, count, remote = trouver_branch_count_remote(fold)
+    log = sync_local_remote(count, fold, fic_log, branch, remote)
     if fic_log is not None:
         fic_log.write(fold + " :\n")
-    branch, count, remote = trouver_branch_count_remote(fold)
-    sync_local_remote(count, fold, fic_log, branch, remote)
+        fic_log.write(log + "\n")
+    else:
+        print(fold + " :")
+        print(log)
 
 
 def trouver_branch_count_remote(dossier: str):
@@ -283,5 +275,4 @@ def git_fetch(remote, dossier):
     :param dossier: le dossier où fetch
     :param remote: la remote à fetch
     """
-
     subprocess.run(["git", "fetch", remote], cwd=dossier)

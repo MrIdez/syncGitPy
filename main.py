@@ -11,4 +11,4 @@ if __name__ == '__main__':
     parser.add_argument("--fic_dossier", metavar="FIC_DOSS", required=False)
     parser.add_argument("--fic_log", required=False)
     res = parser.parse_args()
-    sync_git_liste_dossier(res.dossier, nom_fic_log=res.fic_log)
+    sync_git_liste_dossier(res.dossier)
