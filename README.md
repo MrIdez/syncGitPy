@@ -17,7 +17,7 @@
 
 # Bienvenue :wave: 
 
-#### Version : 0.9.0
+#### Version : 0.9.1
 
 Ce dépôt contient mon projet SyncGitPy, un script python pour synchroniser les dépôts locaux avec leur remote.
 
