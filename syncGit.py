@@ -18,6 +18,7 @@ import os
 import re
 import subprocess
 import threading
+import time
 from datetime import datetime
 from typing import TextIO
 
@@ -184,21 +185,17 @@ def sync_git_liste_dossier(dossier: str, nom_fic_depot: str = "", nom_fic_log: s
 
     for t in list_thread:
         t.start()
+    en_cours = all(thread.is_alive() for thread in list_thread)
 
-    for t in list_thread:
-        t.join()
-
-    """
-    eli_count = 0
-    while sync_git_doss_thread.is_alive():
-        print(fold, "Synchronisation", '.' * (eli_count + 1), ' ' * (2 - eli_count), end='\r')
+    while en_cours:
+        eli_count = 0
+        print("Synchronisation", '.' * (eli_count + 1), ' ' * (2 - eli_count), end='\r')
         eli_count = (eli_count + 1) % 3
         time.sleep(0.1)
-    print(fold, "Fait !", " " * 15)
-    """
-
+        en_cours = all(thread.is_alive() for thread in list_thread)
+    for t in list_thread:
+        t.join()
     # progress_bar.update(progress_bar.value + 1)
-
     if fic_log is not None:
         close_fic(fic_log)
     return 0
