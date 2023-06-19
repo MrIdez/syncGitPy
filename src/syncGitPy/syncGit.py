@@ -261,10 +261,10 @@ def trouver_depot(dossier):
     list_dir = list(filter(os.path.isdir, list_dir))
     for doss in list_dir:
         os.chdir(doss)
-        est_un_depot = [f for f in os.listdir('..') if re.match(r'.*\.git$', f)]
+        est_un_depot = [f for f in os.listdir('.') if re.match(r'.*\.git$', f)]
         if est_un_depot:
             list_dossier.append(doss)
-        os.chdir("../..")
+        os.chdir("..")
     return list_dossier
 
 
