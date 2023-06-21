@@ -16,17 +16,27 @@
 # ******************************************************************************
 
 import argparse
+import json
+import pathlib
+
+srcPath = str(pathlib.Path(__file__).parent.resolve()) + "/"
 
 from syncGitPy.syncGit import sync_git_liste_dossier
 
+with open(srcPath + "fr-fr.json") as jsonFile:
+    txtData = json.load(jsonFile)
+
 
 def main():
-    parser = argparse.ArgumentParser(prog="SyncGit",
-                                     description="Permet de synchroniser les gits locaux et distant",
-                                     epilog="Copyright (c) 2023 - Guillaume Baron")
+    parser = argparse.ArgumentParser(prog=txtData["prog"],
+                                     description=txtData["description"],
+                                     epilog=txtData["epilog"])
 
-    parser.add_argument("dossier", metavar="DOSS")
-    parser.add_argument("--fic_dossier", metavar="FIC_DOSS", required=False)
-    parser.add_argument("--fic_log", required=False)
+    parser.add_argument(txtData["arg1"]["name"], metavar=txtData["arg1"]["metavar"], help=txtData["arg1"]["help"])
+    parser.add_argument(txtData["arg2"]["name"], metavar=txtData["arg2"]["metavar"], required=False,
+                        help=txtData["arg2"]["help"])
+    parser.add_argument(txtData["arg3"]["name"], required=False, metavar=txtData["arg3"]["metavar"],
+                        help=txtData["arg3"]["help"])
+    print(parser.print_help())
     res = parser.parse_args()
-    sync_git_liste_dossier(res.dossier)
+    sync_git_liste_dossier(res.Dossier)
