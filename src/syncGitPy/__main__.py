@@ -15,28 +15,13 @@
 #  program. If not, see <https://www.gnu.org/licenses/>.
 # ******************************************************************************
 
-import argparse
-import json
-import pathlib
-
-srcPath = str(pathlib.Path(__file__).parent.resolve()) + "/"
-
+from syncGitPy.args_parser import create_parser
 from syncGitPy.syncGit import sync_git_liste_dossier
-
-with open(srcPath + "fr-fr.json") as jsonFile:
-    txtData = json.load(jsonFile)
 
 
 def main():
-    parser = argparse.ArgumentParser(prog=txtData["prog"],
-                                     description=txtData["description"],
-                                     epilog=txtData["epilog"])
-
-    parser.add_argument(txtData["arg1"]["name"], metavar=txtData["arg1"]["metavar"], help=txtData["arg1"]["help"])
-    parser.add_argument(txtData["arg2"]["name"], metavar=txtData["arg2"]["metavar"], required=False,
-                        help=txtData["arg2"]["help"])
-    parser.add_argument(txtData["arg3"]["name"], required=False, metavar=txtData["arg3"]["metavar"],
-                        help=txtData["arg3"]["help"])
-    print(parser.print_help())
-    res = parser.parse_args()
-    sync_git_liste_dossier(res.Dossier)
+    args_parser = create_parser()
+    print(args_parser.print_help())
+    result = args_parser.parse_args()
+    arguments = vars(result).items()
+    sync_git_liste_dossier(result.arg1)
