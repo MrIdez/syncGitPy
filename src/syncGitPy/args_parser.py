@@ -15,13 +15,7 @@
 #  program. If not, see <https://www.gnu.org/licenses/>.
 # ******************************************************************************
 import argparse
-import json
-import pathlib
-
-srcPath = str(pathlib.Path(__file__).parent.resolve()) + "/"
-
-with open(srcPath + "fr-fr.json") as jsonFile:
-    txtData = json.load(jsonFile)
+from src.syncGitPy.fr_fr import txtData
 
 
 def create_parser():
